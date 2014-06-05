@@ -1,22 +1,24 @@
 package com.example.mvcsample;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.androidannotations.annotations.EService;
-import org.androidannotations.annotations.ViewById;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.TextView;
 
 @EService
 public class ControlerService extends Service {
@@ -24,6 +26,7 @@ public class ControlerService extends Service {
 	BroadcastReceiver receiver;
 
 	private Map<String, Method> actionMethod = new HashMap<String, Method>();
+	private Executor executor=new ThreadPoolExecutor(2, 6, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(20));
 
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -53,29 +56,47 @@ public class ControlerService extends Service {
 		}
 	}
 
-	public void doAction(Context context, Intent intent) {
+	public void doAction(final Context context, final Intent intent) {
 
-		try {
-			Method method = actionMethod.get(intent.getAction());
+			final Method method = actionMethod.get(intent.getAction());
 
 			if (method != null) {
-				method.invoke(this, context, intent);
+				executor.execute(new Runnable() {
+					
+					@Override
+					public void run() {
+						// TODO Auto-generated method stub
+						try {
+							method.invoke(ControlerService.this, context, intent);
+						} catch (IllegalAccessException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IllegalArgumentException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (InvocationTargetException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				});
+				
+				
 			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
 	
+	}
+	
+	void sendResponse(Intent src,Intent rlt){
+		rlt.setAction(src.getAction()+"_resp");
+		LocalBroadcastManager.getInstance(this).sendBroadcast(rlt);
+	}
 
 	@Action(action = "action1")
 	public void doAction1(Context context, Intent intent) {
 		Log.d("Controler", "doAction1");
 		Intent rlt = new Intent();
 		rlt.putExtra("name", "hello");
-		rlt.setAction(intent.getAction()+"_resp");
-		LocalBroadcastManager.getInstance(this).sendBroadcast(rlt);
+		sendResponse(intent,rlt);
 	}
 
 	@Action(action = "action2")
@@ -83,8 +104,8 @@ public class ControlerService extends Service {
 		Log.d("Controler", "doAction2");
 		Intent rlt = new Intent();
 		rlt.putExtra("name", "hello2");
-		rlt.setAction(intent.getAction() + "_resp");
-		LocalBroadcastManager.getInstance(this).sendBroadcast(rlt);
+		sendResponse(intent,rlt);
 	}
+	
 
 }

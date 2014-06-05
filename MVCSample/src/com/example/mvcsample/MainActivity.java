@@ -40,7 +40,6 @@ public class MainActivity extends Activity {
 		};
 		Method[] methods = this.getClass().getMethods();
 		for (Method m : methods) {
-			Log.d("Controler", m.getName());
 			if (m.isAnnotationPresent(Action.class)) {
 				
 				Action action = m.getAnnotation(Action.class);
