@@ -67,24 +67,24 @@ public class ControlerService extends Service {
 		}
 	}
 
-	private void sendBroadcast(String action, Intent intent) {
-		LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-	}
+	
 
 	@Action(action = "action1")
 	public void doAction1(Context context, Intent intent) {
 		Log.d("Controler", "doAction1");
 		Intent rlt = new Intent();
-		rlt.putExtra("rlt", "hello");
-		sendBroadcast(intent.getAction() + "_rlt", rlt);
+		rlt.putExtra("name", "hello");
+		rlt.setAction(intent.getAction()+"_resp");
+		LocalBroadcastManager.getInstance(this).sendBroadcast(rlt);
 	}
 
 	@Action(action = "action2")
 	public void doAction2(Context context, Intent intent) {
 		Log.d("Controler", "doAction2");
 		Intent rlt = new Intent();
-		rlt.putExtra("rlt", "hello2");
-		sendBroadcast(intent.getAction() + "_rlt", rlt);
+		rlt.putExtra("name", "hello2");
+		rlt.setAction(intent.getAction() + "_resp");
+		LocalBroadcastManager.getInstance(this).sendBroadcast(rlt);
 	}
 
 }
