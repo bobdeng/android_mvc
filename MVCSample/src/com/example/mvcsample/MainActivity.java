@@ -1,5 +1,10 @@
 package com.example.mvcsample;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EActivity;
 import org.androidannotations.annotations.ViewById;
@@ -16,6 +21,7 @@ import android.view.Menu;
 import android.widget.TextView;
 @EActivity(R.layout.activity_main)
 public class MainActivity extends Activity {
+	private Map<String, Method> actionMethod = new HashMap<String, Method>();
 
 	BroadcastReceiver receiver;
 	@ViewById(R.id.txt)
@@ -32,16 +38,35 @@ public class MainActivity extends Activity {
 				doResponse(context,intent);
 			}
 		};
-		LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter("action1_resp"));
-		LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter("action2_resp"));
-		
+		Method[] methods = this.getClass().getMethods();
+		for (Method m : methods) {
+			Log.d("Controler", m.getName());
+			if (m.isAnnotationPresent(Action.class)) {
+				
+				Action action = m.getAnnotation(Action.class);
+				actionMethod.put(action.action()+"_resp", m);
+				LocalBroadcastManager.getInstance(this).registerReceiver(
+						receiver, new IntentFilter(action.action()+"_resp"));
+			}
+		}
 	}
 	
 	private void doResponse(Context context,Intent intent){
-		if(intent.getAction().startsWith("action1"))
-			doAction1Resp(context,intent);
-		else
-			doAction2Resp(context,intent);
+		Method m=actionMethod.get(intent.getAction());
+		if(m!=null){
+			try {
+				m.invoke(this,context, intent);
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -56,12 +81,12 @@ public class MainActivity extends Activity {
 		Log.d("Controler", System.currentTimeMillis()+"");
 	}
 	@Action(action="action2")
-	private void doAction2Resp(Context context, Intent intent){
+	public void doAction2Resp(Context context, Intent intent){
 		Log.d("Controler", "action2 response");
 		txt.setText(intent.getStringExtra("name"));
 	}
 	@Action(action="action1")
-	private void doAction1Resp(Context context, Intent intent){
+	public void doAction1Resp(Context context, Intent intent){
 		Log.d("Controler", "action1 response");
 		txt.setText(intent.getStringExtra("name"));
 	}
